@@ -18,12 +18,48 @@
 
 
 import sys
-from sysex_tones import apps as thr_apps
+import errno
+
+import sysex_tones
+import sysex_tones.THR
+
+from sysex_tones.THR10 import THR10
 
 
 def process_file( infilename ):
 	""" Listen to the THR device via the infilename, output any data sent by the device. """
-	thr_apps.monitor_thr( infilename )
+	thr = THR10()
+	thr.open_infile_wait_indefinitely( infilename )
+	recognized = [sysex_tones.THR.CONSTANTS.THR10_MODEL_NAME]
+	model = ''
+	context = ''
+	while thr:
+		try:
+			# break the stream up into SysEx commands and process each one
+			for sysex in thr.extract_sysex_from_infile():
+				heartbeat = thr.find_thr_heartbeat_model( sysex )
+				if heartbeat: # the heartbeat happens about twice a second, when device is connected
+					if not model: # only show model name once
+						model = heartbeat
+						print( 'Model %s' % (model) )
+						if model not in recognized:
+							print( '%s are not recognized.' % (model) )
+				else: # it isn't a device heartbeat, maybe it's settings data
+					detected = thr.detect_midi_dump( sysex )
+					if detected: # it's a dump of complete current settings
+						thr.print_sysex_data( sysex, detected['data'] )
+					else: # maybe it's a settings command (probably an on-amp change)
+						command = thr.find_thr_command( sysex, context )
+						if command:
+							print( 'THR command', command )
+							if 'context' in command: # used to track 'sub' commands, if possible
+								context = command['context']
+						else:
+							print( 'unrecognized', context, sysex_tones.convert_bytes_to_hex_string( sysex ) )
+		except IOError as error:
+			if error.errno != errno.EAGAIN: # device disconnected
+				thr.close_infile()
+				thr = None
 
 
 if __name__ == '__main__':
