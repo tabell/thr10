@@ -77,7 +77,9 @@ def convert_to_stream( data ):
 
 
 def convert_from_stream( string ):
-	""" Convert a string from a stream, via .read(), into a list of bytes. """
+	""" Convert a string/bytes from a stream, via .read(), into a list of bytes. """
+	if isinstance( string, (bytes, bytearray) ):
+		return list( string )
 	return [ord( c ) for c in string]
 
 
@@ -211,4 +213,3 @@ def settings_to_string( prefix, label, settings, values ):
 		retval = form % (retval, settings[count], values[count])
 		count += 1
 	return retval
-
