@@ -27,7 +27,7 @@ def _require(value, label):
 def cmd_monitor(args):
 	"""Monitor incoming MIDI data and print recognized THR messages."""
 	midi_in = _require(args.midi_in, 'MIDI input device filename')
-	thr_apps.monitor_thr(midi_in)
+	thr_apps.monitor_thr(midi_in, verbose=args.verbose)
 	return 0
 
 
@@ -35,7 +35,7 @@ def cmd_view(args):
 	"""Request and display the current THR settings."""
 	midi_in = _require(args.midi_in, 'MIDI input device filename')
 	midi_out = _require(args.midi_out, 'MIDI output device filename')
-	thr_apps.view_current_settings(midi_in, midi_out)
+	thr_apps.view_current_settings(midi_in, midi_out, verbose=args.verbose)
 	return 0
 
 
@@ -49,7 +49,7 @@ def cmd_write(args):
 		config_files.extend(args.config_files_opt)
 	if not config_files:
 		raise ValueError('Missing required config filenames.')
-	thr_apps.write_config_files(midi_out, config_files)
+	thr_apps.write_config_files(midi_out, config_files, verbose=args.verbose)
 	return 0
 
 
@@ -62,7 +62,7 @@ def cmd_dump(args):
 		input_files.extend(args.input_files_opt)
 	if not input_files:
 		raise ValueError('Missing required input filenames.')
-	thr_apps.dump_thr_files(input_files)
+	thr_apps.dump_thr_files(input_files, verbose=args.verbose)
 	return 0
 
 
@@ -71,7 +71,7 @@ def cmd_save_dumps(args):
 	midi_in = _require(args.midi_in, 'MIDI input device filename')
 	midi_out = _require(args.midi_out, 'MIDI output device filename')
 	postfix = _require(args.postfix, 'output filename postfix')
-	thr_apps.save_settings_dumps(midi_in, midi_out, postfix)
+	thr_apps.save_settings_dumps(midi_in, midi_out, postfix, verbose=args.verbose)
 	return 0
 
 
@@ -80,7 +80,7 @@ def cmd_rename(args):
 	midi_in = _require(args.midi_in, 'MIDI input device filename')
 	midi_out = _require(args.midi_out, 'MIDI output device filename')
 	new_name = _require(args.new_name, 'new settings name')
-	thr_apps.rename_current_settings(midi_in, midi_out, new_name)
+	thr_apps.rename_current_settings(midi_in, midi_out, new_name, verbose=args.verbose)
 	return 0
 
 
@@ -100,6 +100,14 @@ def _add_io_arguments(parser, needs_out=False, needs_postfix=False, needs_name=F
 
 def build_parser():
 	"""Build the CLI parser."""
+	parent_parser = argparse.ArgumentParser(add_help=False)
+	parent_parser.add_argument(
+		'-v',
+		'--verbose',
+		action='store_true',
+		help='Enable verbose logging.',
+	)
+
 	parser = argparse.ArgumentParser(
 		prog='sysex-tones',
 		description='Utilities for Yamaha THR10 SysEx operations.',
@@ -111,6 +119,7 @@ def build_parser():
 	monitor = subparsers.add_parser(
 		'monitor',
 		aliases=['monitor_thr', 'monitor-thr'],
+		parents=[parent_parser],
 		help='Monitor incoming MIDI data from the THR device.',
 		description='Listen to a MIDI input and print recognized THR commands.',
 		epilog='Example: sysex-tones monitor /dev/midi1',
@@ -122,6 +131,7 @@ def build_parser():
 	view = subparsers.add_parser(
 		'view',
 		aliases=['view_current_thr_settings', 'view-current'],
+		parents=[parent_parser],
 		help='Request and display current THR settings.',
 		description='Request the current settings dump and print it.',
 		epilog='Example: sysex-tones view /dev/midi1 /dev/midi2',
@@ -133,6 +143,7 @@ def build_parser():
 	write = subparsers.add_parser(
 		'write',
 		aliases=['write_config_files_to_thr', 'write-config'],
+		parents=[parent_parser],
 		help='Send text settings files to the THR device.',
 		description='Convert text settings files into MIDI data and send them.',
 		epilog='Example: sysex-tones write /dev/midi2 tone1.txt tone2.txt',
@@ -152,6 +163,7 @@ def build_parser():
 	dump_cmd = subparsers.add_parser(
 		'dump',
 		aliases=['dump_thr_files', 'dump-files'],
+		parents=[parent_parser],
 		help='Convert THR dump or SysEx files into text.',
 		description='Display text conversions of THR settings or SysEx files.',
 		epilog='Example: sysex-tones dump preset.syx',
@@ -169,6 +181,7 @@ def build_parser():
 	save = subparsers.add_parser(
 		'save-dumps',
 		aliases=['save_any_dumped_thr_settings', 'save-dumped'],
+		parents=[parent_parser],
 		help='Save any settings dumps to numbered files.',
 		description='Save settings dumps received from the THR device.',
 		epilog='Example: sysex-tones save-dumps /dev/midi1 /dev/midi2 preset.syx',
@@ -180,6 +193,7 @@ def build_parser():
 	rename = subparsers.add_parser(
 		'rename',
 		aliases=['change_name_of_current_settings_on_thr', 'change-name'],
+		parents=[parent_parser],
 		help='Change the name of the current THR settings.',
 		description='Read current settings, change the name, and write it back.',
 		epilog='Example: sysex-tones rename /dev/midi1 /dev/midi2 "New Preset"',
