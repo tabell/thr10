@@ -16,16 +16,12 @@
 
 import sys
 
-from sysex_tones.THR10 import THR10
+from sysex_tones import apps as thr_apps
 
 
 def write_to_midi( outfilename, infilenames ):
 	""" Send converted settings text from infilenames to outfilename as MIDI. """
-	thr = THR10()
-	thr.open_outfile( outfilename )
-	for infilename in infilenames:
-		thr.write_text_to_midi( infilename )
-	thr.close_outfile()
+	thr_apps.write_config_files( outfilename, infilenames )
 
 
 if __name__ == '__main__':
@@ -33,4 +29,3 @@ if __name__ == '__main__':
 		write_to_midi( sys.argv[1], sys.argv[2:] )
 	else:
 		print( 'Usage: %s MIDIOUTPUTDEVFILENAME configfilenames' % (sys.argv[0]) )
-

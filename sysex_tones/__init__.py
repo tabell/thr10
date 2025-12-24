@@ -77,7 +77,7 @@ def convert_to_stream( data ):
 
 
 def convert_from_stream( string ):
-	""" Convert a string from a stream, via .read(), into a list of bytes. """
+	""" Convert a string/bytes from a stream, via .read(), into a list of bytes. """
 	if string is None:
 		return []
 	if isinstance( string, (bytes, bytearray) ):

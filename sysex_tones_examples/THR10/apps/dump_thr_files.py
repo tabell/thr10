@@ -16,19 +16,12 @@
 
 import sys
 
-from sysex_tones.THR10 import THR10
+from sysex_tones import apps as thr_apps
 
 
 def process_files( infilenames ):
 	""" Convert each infilenames into text settings. """
-	thr = THR10()
-	for infilename in infilenames:
-		lines = thr.convert_infile_to_text( infilename )
-		if lines:
-			for line in lines:
-				print( line )
-		else:
-			print( 'No THR SysEx found.' )
+	thr_apps.dump_thr_files( infilenames )
 
 
 if __name__ == '__main__':
@@ -36,4 +29,3 @@ if __name__ == '__main__':
 		process_files( sys.argv[1:] )
 	else:
 		print( 'Usage: %s inputfilenames' % (sys.argv[0]) )
-

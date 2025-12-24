@@ -18,36 +18,12 @@
 
 
 import sys
-import errno
-
-from sysex_tones.THR10 import THR10
+from sysex_tones import apps as thr_apps
 
 
 def save_settings_dumps( infilename, outfilename, savefilenamepostfix ):
 	""" Save settings dumps to N_savefilenamepostfix. """
-	thr = THR10( infilename, outfilename )
-	thr.open_infile_wait_indefinitely()
-	thr.request_current_settings()
-	count = 0
-	while thr:
-		# read settings dumps
-		# first the inital requested dump
-		# then any dumps occuring when pressing preset buttons on the THR device
-		try:
-			attempt = thr.extract_dump()
-			# only save settings dumps
-			if attempt:
-				# output settings into a numbered file
-				savefilename = '%i_%s' % (count, savefilenamepostfix)
-				savefile = open( savefilename, 'wb' )
-				savefile.write( bytearray( attempt['dump'] ) )
-				savefile.close()
-				savefile = None
-				count += 1
-		except IOError as error:
-			if error.errno == errno.ENODEV: # device disconnected
-				thr.close_infile()
-				thr = None
+	thr_apps.save_settings_dumps( infilename, outfilename, savefilenamepostfix )
 
 
 if __name__ == '__main__':
@@ -55,4 +31,3 @@ if __name__ == '__main__':
 		save_settings_dumps( sys.argv[1], sys.argv[2], sys.argv[3] )
 	else:
 		print( 'Usage: %s MIDIINPUTDEVFILENAME MIDIOUTPUTDEVFILENAME OUTPUTFILENAMEPOSTFIX' % (sys.argv[0]) )
-

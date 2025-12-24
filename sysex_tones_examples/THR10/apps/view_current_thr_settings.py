@@ -15,26 +15,12 @@
 
 
 import sys
-import errno
-
-from sysex_tones.THR10 import THR10
+from sysex_tones import apps as thr_apps
 
 
 def view_current_settings( infilename, outfilename ):
 	""" View the current device settings. """
-	thr = THR10()
-	thr.open_infile_wait_indefinitely( infilename )
-	thr.request_current_settings( outfilename )
-	while thr:
-		try:
-			attempt = thr.extract_dump()
-			if attempt:
-				thr.print_sysex_data( attempt['sysex'], attempt['dump'] )
-				thr.close_infile()
-				thr = None
-		except IOError as error:
-			if error.errno == errno.ENODEV: # device disconnected
-				thr.close_infile()
+	thr_apps.view_current_settings( infilename, outfilename )
 
 
 if __name__ == '__main__':
@@ -42,4 +28,3 @@ if __name__ == '__main__':
 		view_current_settings( sys.argv[1], sys.argv[2] )
 	else:
 		print( 'Usage: %s MIDIINPUTDEVFILENAME MIDIOUTPUTDEVFILENAME' % (sys.argv[0]) )
-
