@@ -6,7 +6,9 @@ import sys
 import sysex_tones
 import sysex_tones.THR
 
+from sysex_tones.THR import CONSTANTS as _THR_CONSTANTS
 from sysex_tones.THR10 import THR10
+from sysex_tones.THR10 import state as thr10_state
 
 
 USAGE_TEXT = """Usage:
@@ -23,6 +25,38 @@ def _log(verbose, message):
 	"""Print a message when verbose logging is enabled."""
 	if verbose:
 		print(message)
+
+
+def _state_from_lines(lines):
+	"""Parse text settings into a THR10State."""
+	return thr10_state.from_text_settings(lines)
+
+
+def _state_to_lines(state):
+	"""Serialize a THR10State into text settings."""
+	return thr10_state.to_text_settings(state)
+
+
+def _write_text_lines(thr, lines):
+	"""Write text settings lines to a THR device."""
+	payload = []
+	for line in lines:
+		command = sysex_tones.THR10.convert_text_to_midi(line)
+		if command:
+			payload += command
+	if payload:
+		thr.write_data_to_outfile(payload)
+
+
+def _replace_dump_data(sysex, data):
+	"""Replace the dump data payload in a SysEx dump and refresh the checksum."""
+	updated = sysex[:]
+	start = _THR_CONSTANTS.THR_DUMP_OFFSET
+	end = start + _THR_CONSTANTS.THR_SYSEX_SIZE
+	updated[start:end] = data[:_THR_CONSTANTS.THR_SYSEX_SIZE]
+	payload_start = len(_THR_CONSTANTS.THR_DUMP_HEADER_PREFIX)
+	updated[-2] = sysex_tones.THR.calculate_checksum(updated[payload_start:-2])
+	return updated
 
 
 def monitor_thr(midi_in, verbose=False):
@@ -80,7 +114,10 @@ def view_current_settings(midi_in, midi_out, verbose=False):
 			attempt = thr.extract_dump()
 			if attempt:
 				_log(verbose, 'Received settings dump.')
-				thr.print_sysex_data(attempt['sysex'], attempt['dump'])
+				lines = sysex_tones.THR10.convert_midi_dump_to_text(attempt['dump'])
+				state = _state_from_lines(lines)
+				for line in _state_to_lines(state):
+					print(line)
 				thr.close_infile()
 				thr = None
 		except IOError as error:
@@ -96,7 +133,10 @@ def write_config_files(midi_out, config_files, verbose=False):
 	thr.open_outfile(midi_out)
 	for infilename in config_files:
 		_log(verbose, 'Writing config: %s' % (infilename))
-		thr.write_text_to_midi(infilename)
+		with open(infilename, 'r', encoding='utf-8', errors='ignore') as infile:
+			lines = infile.read().splitlines()
+		state = _state_from_lines(lines)
+		_write_text_lines(thr, _state_to_lines(state))
 	thr.close_outfile()
 
 
@@ -107,7 +147,8 @@ def dump_thr_files(input_files, verbose=False):
 		_log(verbose, 'Converting file: %s' % (infilename))
 		lines = thr.convert_infile_to_text(infilename)
 		if lines:
-			for line in lines:
+			state = _state_from_lines(lines)
+			for line in _state_to_lines(state):
 				print(line)
 		else:
 			print('No THR SysEx found.')
@@ -142,7 +183,6 @@ def rename_current_settings(midi_in, midi_out, new_name, verbose=False):
 	_log(verbose, 'Opening MIDI input: %s' % (midi_in))
 	_log(verbose, 'Opening MIDI output: %s' % (midi_out))
 	_log(verbose, 'Renaming settings to: %s' % (new_name))
-	newname = sysex_tones.convert_from_stream(new_name.strip())
 	thr = sysex_tones.THR10.THR10(midi_in, midi_out)
 	thr.open_infile_wait_indefinitely()
 	thr.request_current_settings()
@@ -151,12 +191,18 @@ def rename_current_settings(midi_in, midi_out, new_name, verbose=False):
 			attempt = thr.extract_dump()
 			if attempt:
 				_log(verbose, 'Received settings dump.')
-				thr.print_sysex_data(attempt['sysex'], attempt['dump'])
-				newsysex = sysex_tones.THR.change_name_of_settings(newname, attempt['sysex'])
+				lines = sysex_tones.THR10.convert_midi_dump_to_text(attempt['dump'])
+				state = _state_from_lines(lines)
+				for line in _state_to_lines(state):
+					print(line)
+				state.name = new_name.strip()
+				updated_data = thr10_state.to_midi_data(state)
+				newsysex = _replace_dump_data(attempt['sysex'], updated_data)
 				detected = thr.detect_midi_dump(newsysex)
 				if detected:
 					_log(verbose, 'Writing renamed settings.')
-					thr.print_sysex_data(newsysex, detected['data'])
+					for line in _state_to_lines(state):
+						print(line)
 					thr.write_data_to_outfile(newsysex)
 					thr.close_infile()
 					thr = None
