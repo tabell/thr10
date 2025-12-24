@@ -19,6 +19,7 @@
 
 import sys
 import errno
+import time
 
 import sysex_tones
 import sysex_tones.THR
@@ -29,14 +30,19 @@ from sysex_tones.THR10 import THR10
 def process_file( infilename ):
 	""" Listen to the THR device via the infilename, output any data sent by the device. """
 	thr = THR10()
+	print( 'Opening MIDI input %s' % (infilename) )
 	thr.open_infile_wait_indefinitely( infilename )
+	print( 'Opened MIDI input %s' % (infilename) )
 	recognized = [sysex_tones.THR.CONSTANTS.THR10_MODEL_NAME]
 	model = ''
 	context = ''
+	last_notice = time.time()
 	while thr:
 		try:
 			# break the stream up into SysEx commands and process each one
+			had_data = False
 			for sysex in thr.extract_sysex_from_infile():
+				had_data = True
 				heartbeat = thr.find_thr_heartbeat_model( sysex )
 				if heartbeat: # the heartbeat happens about twice a second, when device is connected
 					if not model: # only show model name once
@@ -56,8 +62,14 @@ def process_file( infilename ):
 								context = command['context']
 						else:
 							print( 'unrecognized', context, sysex_tones.convert_bytes_to_hex_string( sysex ) )
+			if not had_data:
+				now = time.time()
+				if now - last_notice >= 5:
+					print( 'Waiting for MIDI data on %s...' % (infilename) )
+					last_notice = now
 		except IOError as error:
 			if error.errno != errno.EAGAIN: # device disconnected
+				print( 'MIDI input error:', error )
 				thr.close_infile()
 				thr = None
 

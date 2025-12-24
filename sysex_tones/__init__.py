@@ -78,6 +78,8 @@ def convert_to_stream( data ):
 
 def convert_from_stream( string ):
 	""" Convert a string/bytes from a stream, via .read(), into a list of bytes. """
+	if string is None:
+		return []
 	if isinstance( string, (bytes, bytearray) ):
 		return list( string )
 	return [ord( c ) for c in string]
@@ -93,6 +95,8 @@ def extract_settings( text ):
 	ANOTHERLABEL: ETC ..., SPACES ALLOWED IN LABELS not_values
 
 	"""
+	if text is None:
+		return ('', '', _collections.OrderedDict())
 	if isinstance( text, (bytes, bytearray) ):
 		text = text.decode( 'utf-8', errors='ignore' )
 	text = text.strip()
