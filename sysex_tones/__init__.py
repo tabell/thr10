@@ -95,6 +95,10 @@ def extract_settings( text ):
 	ANOTHERLABEL: ETC ..., SPACES ALLOWED IN LABELS not_values
 
 	"""
+	if text is None:
+		return ('', '', _collections.OrderedDict())
+	if isinstance( text, (bytes, bytearray) ):
+		text = text.decode( 'utf-8', errors='ignore' )
 	text = text.strip()
 	setting = ''
 	valuelist = ''
