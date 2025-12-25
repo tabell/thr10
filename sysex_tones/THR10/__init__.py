@@ -14,6 +14,7 @@
 
 
 from sysex_tones.THR10.THR10 import THR10
+from sysex_tones.THR10.controller import THR10Controller
 
 import struct as _struct
 
@@ -129,4 +130,3 @@ def convert_to_text( data ):
 				elif sysex == _THR10_CONSTANTS.THR10_SETTINGS_REQUEST:
 					retval.append( 'THR10 request settings command' )
 	return retval
-
